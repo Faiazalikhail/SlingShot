@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Balkh Slingshot Demo</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        font-family: 'Courier New', Courier, monospace;
+        user-select: none;
+      }
+      #canvas-container {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+      #hud {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .hud-text {
+        color: rgba(255, 255, 255, 0.7);
+        text-shadow: 1px 1px 2px black;
+      }
+      #force-meter-container {
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      #force-meter-fill {
+        width: 0%;
+        height: 100%;
+        background: white;
+        transform-origin: left;
+      }
+      .instructions {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 14px;
+        color: rgba(200, 200, 200, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container"></div>
+    <div id="hud">
+      <div>
+        <h1 class="hud-text" style="margin: 0; font-size: 24px;">Project Balkh</h1>
+        <div class="hud-text" style="font-size: 12px; margin-top: 5px;">Kinetic Force Simulation v1.0</div>
+      </div>
+      <div>
+        <div id="mode-indicator" class="hud-text" style="text-align: center; font-size: 18px; margin-bottom: 10px; opacity: 0;">OVERDRAW ENGAGED</div>
+        <div id="force-meter-container">
+          <div id="force-meter-fill"></div>
+        </div>
+        <div class="instructions hud-text">Drag from center to aim and apply force. Release to fire.</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
