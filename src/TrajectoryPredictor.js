@@ -71,7 +71,15 @@ export class TrajectoryPredictor {
         positions[i * 3 + 2] = pos.z;
 
         // Stop drawing if it hits the ground plane approx
-        if (pos.y < 0) break;
+        if (pos.y < 0) {
+            // Fill remainder with last position to prevent tail artifacts
+            for (let j = i + 1; j < this.numPoints; j++) {
+                positions[j * 3] = pos.x;
+                positions[j * 3 + 1] = pos.y;
+                positions[j * 3 + 2] = pos.z;
+            }
+            break;
+        }
     }
 
     this.geometry.attributes.position.needsUpdate = true;

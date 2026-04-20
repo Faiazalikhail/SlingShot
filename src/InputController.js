@@ -3,22 +3,17 @@ import gsap from 'gsap';
 import { TrajectoryPredictor } from './TrajectoryPredictor.js';
 
 export class InputController {
-  constructor(engine, slingshot) {
+  constructor(engine, slingshot, playerController) {
     this.engine = engine;
     this.slingshot = slingshot;
+    this.playerController = playerController;
 
-    this.isDragging = false;
-    this.dragStart = new THREE.Vector2();
-    this.currentDrag = new THREE.Vector2();
+    this.isCharging = false;
+    this.chargeAmount = 0; // 0 to 1
+    this.chargeRate = 0.5; // per second
 
     // Physics constants
-    this.kNormal = 40;   // Spring constant for normal mode
-    this.kLong = 80;     // Spring constant for long range mode
-    this.thresholdT = 2.0; // Pull distance to trigger Long Range
-    this.maxPull = 4.0;    // Absolute max pull distance
-
-    this.currentMode = 'NORMAL';
-    this.pullVector3D = new THREE.Vector3();
+    this.maxForce = 120; // Max force applied to projectile
 
     // DOM Elements for HUD
     this.forceMeterFill = document.getElementById('force-meter-fill');
@@ -27,192 +22,137 @@ export class InputController {
     // Trajectory Predictor
     this.trajectory = new TrajectoryPredictor(this.engine);
 
-    // Create an invisible interaction plane in front of the camera
-    this.raycaster = new THREE.Raycaster();
-    this.interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -6); // z=6 matches slingshot
-
     this.bindEvents();
   }
 
   bindEvents() {
-    window.addEventListener('mousedown', this.onPointerDown.bind(this));
-    window.addEventListener('mousemove', this.onPointerMove.bind(this));
-    window.addEventListener('mouseup', this.onPointerUp.bind(this));
+    window.addEventListener('mousedown', (e) => {
+        if(this.playerController.controls.isLocked) {
+            this.isCharging = true;
+            this.chargeAmount = 0;
+        }
+    });
 
-    window.addEventListener('touchstart', this.onTouchDown.bind(this), {passive: false});
-    window.addEventListener('touchmove', this.onTouchMove.bind(this), {passive: false});
-    window.addEventListener('touchend', this.onTouchUp.bind(this), {passive: false});
+    window.addEventListener('mouseup', (e) => {
+        if(this.isCharging) {
+            this.fireWeapon();
+            this.isCharging = false;
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if(e.code === 'Digit1') {
+            this.slingshot.switchWeapon(1);
+            document.getElementById('weapon-info').innerText = "Weapon: Precision Sling";
+        } else if (e.code === 'Digit2') {
+            this.slingshot.switchWeapon(2);
+            document.getElementById('weapon-info').innerText = "Weapon: Staff Sling";
+        }
+    });
   }
 
-  getPointerIntersection(clientX, clientY) {
-    const mouse = new THREE.Vector2();
-    mouse.x = (clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+  update(dt) {
+    if (this.isCharging && this.slingshot.projectileReady) {
+        this.chargeAmount = Math.min(this.chargeAmount + this.chargeRate * dt, 1.0);
 
-    this.raycaster.setFromCamera(mouse, this.engine.camera);
-    const intersectPoint = new THREE.Vector3();
-    this.raycaster.ray.intersectPlane(this.interactionPlane, intersectPoint);
-    return intersectPoint;
-  }
+        // Update visuals based on weapon
+        if (this.slingshot.activeWeapon === 1) {
+            this.slingshot.updateSling(this.chargeAmount);
 
-  onPointerDown(e) {
-    if (!this.slingshot.projectileReady) return;
+            // Zoom FOV
+            const targetFOV = 75 - (20 * this.chargeAmount);
+            this.engine.camera.fov = THREE.MathUtils.lerp(this.engine.camera.fov, targetFOV, 0.1);
+            this.engine.camera.updateProjectionMatrix();
 
-    const pt = this.getPointerIntersection(e.clientX, e.clientY);
-    if(pt) {
-        this.isDragging = true;
-        // Projectile rest pos in world space is approx (0, 2.8, 6)
-        // We use the intersection point as the start
-        this.dragStartPoint = pt.clone();
-    }
-  }
+            // Screen shake at high charge
+            if(this.chargeAmount > 0.8) {
+                this.triggerRecoil(0.02);
+                this.modeIndicator.style.opacity = 1;
+                this.slingshot.slingLine.material.color.setHex(0xff0000);
+            } else {
+                this.modeIndicator.style.opacity = 0;
+                this.slingshot.slingLine.material.color.setHex(0x884444);
+            }
 
-  onPointerMove(e) {
-    if (!this.isDragging || !this.slingshot.projectileReady) return;
+            // Calculate Force
+            const forceMag = this.maxForce * this.chargeAmount;
+            const forceDir = new THREE.Vector3();
+            this.engine.camera.getWorldDirection(forceDir);
+            forceDir.y += 0.1; // Baseline arc
+            forceDir.normalize();
 
-    const pt = this.getPointerIntersection(e.clientX, e.clientY);
-    if(pt) {
-        // Calculate raw pull vector (opposite to drag direction to represent pulling back)
-        // Actually, if we drag down-left, we are pulling the band down-left.
-        // The pull vector relative to center is pt - center.
-        // Center is (0, 2.8, 6).
-        const center = new THREE.Vector3(0, 2.8, 6);
-        let pullVec = pt.clone().sub(center);
+            const finalForce = forceDir.clone().multiplyScalar(forceMag);
 
-        // Lock Z so we only pull in X/Y plane relative to camera
-        pullVec.z = 0;
+            // Show trajectory
+            const startPos = this.slingshot.currentProjectile.body.position;
+            const mode = this.chargeAmount > 0.8 ? 'LONG' : 'NORMAL';
+            this.trajectory.update(startPos, finalForce, mode);
 
-        // Cap pull distance
-        if (pullVec.length() > this.maxPull) {
-            pullVec.normalize().multiplyScalar(this.maxPull);
+        } else if (this.slingshot.activeWeapon === 2) {
+            // Staff Sling Whirling
+            this.slingshot.updateStaff(this.chargeAmount, dt);
+
+            // Hide trajectory
+            this.trajectory.hide();
         }
 
-        this.pullVector3D.copy(pullVec);
-        this.slingshot.updateSling(this.pullVector3D);
+        // Update HUD
+        this.forceMeterFill.style.width = `${this.chargeAmount * 100}%`;
+        if (this.chargeAmount > 0.8) {
+            this.forceMeterFill.style.background = 'red';
+        } else {
+            this.forceMeterFill.style.background = 'white';
+        }
 
-        this.updateHUD(pullVec.length());
-        this.checkModeSwitch(pullVec.length());
-    }
-  }
-
-  onPointerUp(e) {
-    if (!this.isDragging) return;
-    this.isDragging = false;
-
-    const distance = this.pullVector3D.length();
-    if (distance > 0.5 && this.slingshot.projectileReady) {
-        // Calculate Force F = k * x
-        const k = this.currentMode === 'NORMAL' ? this.kNormal : this.kLong;
-
-        // Force direction is opposite to pull vector
-        const forceDir = this.pullVector3D.clone().normalize().negate();
-
-        // Add a slight upward angle baseline for better arcs
-        forceDir.y += 0.2;
-        forceDir.z = -1; // Shoot into the screen
-        forceDir.normalize();
-
-        const forceMag = k * distance;
-        const finalForce = forceDir.multiplyScalar(forceMag);
-
-        this.slingshot.fire(finalForce);
-
-        // Visual recoil/shake
-        this.triggerRecoil();
     } else {
-        // Cancel shot
-        this.slingshot.updateSling(new THREE.Vector3(0,0,0));
-    }
-
-    // Reset HUD and Mode
-    this.pullVector3D.set(0,0,0);
-    this.updateHUD(0);
-    if(this.currentMode !== 'NORMAL') this.switchMode('NORMAL');
-  }
-
-  onTouchDown(e) {
-    e.preventDefault();
-    this.onPointerDown(e.touches[0]);
-  }
-  onTouchMove(e) {
-    e.preventDefault();
-    this.onPointerMove(e.touches[0]);
-  }
-  onTouchUp(e) {
-    e.preventDefault();
-    this.onPointerUp(e);
-  }
-
-  checkModeSwitch(distance) {
-    if (distance > this.thresholdT && this.currentMode === 'NORMAL') {
-        this.switchMode('LONG');
-    } else if (distance <= this.thresholdT && this.currentMode === 'LONG') {
-        this.switchMode('NORMAL');
-    }
-  }
-
-  switchMode(mode) {
-    this.currentMode = mode;
-
-    if (mode === 'LONG') {
-        // Trigger Overdraw visual feedback
-        gsap.to(this.engine.camera, { fov: 75, duration: 0.3, onUpdate: () => this.engine.camera.updateProjectionMatrix() });
-        gsap.to(this.modeIndicator, { opacity: 1, duration: 0.2, yoyo: true, repeat: -1 });
-        this.modeIndicator.style.color = '#ff4444';
-
-        // Change sling color
-        this.slingshot.slingLine.material.color.setHex(0xff0000);
-    } else {
-        // Revert to Normal
-        gsap.to(this.engine.camera, { fov: 60, duration: 0.3, onUpdate: () => this.engine.camera.updateProjectionMatrix() });
-        gsap.killTweensOf(this.modeIndicator);
-        gsap.to(this.modeIndicator, { opacity: 0, duration: 0.2 });
-
+        // Not charging
+        if (this.slingshot.activeWeapon === 1) {
+            this.engine.camera.fov = THREE.MathUtils.lerp(this.engine.camera.fov, 75, 0.1);
+            this.engine.camera.updateProjectionMatrix();
+        } else {
+            this.slingshot.updateStaff(0, dt);
+        }
+        this.trajectory.hide();
+        this.forceMeterFill.style.width = `0%`;
+        this.modeIndicator.style.opacity = 0;
         this.slingshot.slingLine.material.color.setHex(0x884444);
     }
   }
 
-  updateHUD(distance) {
-    const percent = Math.min((distance / this.maxPull) * 100, 100);
-    this.forceMeterFill.style.width = `${percent}%`;
+  fireWeapon() {
+      if (!this.slingshot.projectileReady || this.chargeAmount < 0.1) {
+          this.chargeAmount = 0;
+          if(this.slingshot.activeWeapon === 1) this.slingshot.updateSling(0);
+          return;
+      }
 
-    if (this.currentMode === 'LONG') {
-        this.forceMeterFill.style.background = 'red';
-    } else {
-        this.forceMeterFill.style.background = 'white';
-    }
+      // Calculate force based on camera look direction
+      const forceMag = this.maxForce * this.chargeAmount;
+      const forceDir = new THREE.Vector3();
+      this.engine.camera.getWorldDirection(forceDir);
 
-    // Trajectory Prediction
-    if (this.slingshot.currentProjectile && this.isDragging && distance > 0.5) {
-        const k = this.currentMode === 'NORMAL' ? this.kNormal : this.kLong;
-        const forceDir = this.pullVector3D.clone().normalize().negate();
-        forceDir.y += 0.2;
-        forceDir.z = -1;
-        forceDir.normalize();
+      // Add slight upward angle
+      forceDir.y += 0.1;
+      forceDir.normalize();
 
-        const forceMag = k * distance;
-        const finalForce = forceDir.multiplyScalar(forceMag);
+      const finalForce = forceDir.multiplyScalar(forceMag);
 
-        const startPos = this.slingshot.currentProjectile.body.position;
-        this.trajectory.update(startPos, finalForce, this.currentMode);
-    } else {
-        this.trajectory.hide();
-    }
+      this.slingshot.fire(finalForce);
+
+      // Recoil
+      this.triggerRecoil(this.slingshot.activeWeapon === 1 ? 0.2 : 0.5);
+
+      this.chargeAmount = 0;
   }
 
-  triggerRecoil() {
-    const intensity = this.currentMode === 'LONG' ? 0.5 : 0.1;
-
-    // Simple screen shake using GSAP on camera position
-    const startY = 2;
-    gsap.to(this.engine.camera.position, {
-        y: startY + intensity,
+  triggerRecoil(intensity) {
+    // Simple screen shake using GSAP on camera rotation
+    const originalX = this.engine.camera.rotation.x;
+    gsap.to(this.engine.camera.rotation, {
+        x: originalX + intensity,
         duration: 0.05,
         yoyo: true,
-        repeat: 3,
-        onComplete: () => {
-            gsap.to(this.engine.camera.position, { y: startY, duration: 0.1 });
-        }
+        repeat: 1
     });
   }
 }

@@ -53,11 +53,30 @@
         background: white;
         transform-origin: left;
       }
-      .instructions {
-        text-align: center;
-        margin-top: 10px;
-        font-size: 14px;
-        color: rgba(200, 200, 200, 0.8);
+      #weapon-info {
+        position: absolute;
+        bottom: 40px;
+        right: 40px;
+        font-size: 18px;
+        background: rgba(0,0,0,0.5);
+        padding: 10px;
+        border: 1px solid rgba(255,255,255,0.3);
+      }
+      #restart-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        pointer-events: auto;
+        background: rgba(0,0,0,0.5);
+        color: white;
+        border: 1px solid white;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-family: inherit;
+        z-index: 20;
+      }
+      #restart-btn:hover {
+        background: rgba(255,255,255,0.2);
       }
     </style>
   </head>
@@ -66,16 +85,17 @@
     <div id="hud">
       <div>
         <h1 class="hud-text" style="margin: 0; font-size: 24px;">Project Balkh</h1>
-        <div class="hud-text" style="font-size: 12px; margin-top: 5px;">Kinetic Force Simulation v1.0</div>
+        <div class="hud-text" style="font-size: 12px; margin-top: 5px;">Kinetic Force Simulation v2.0</div>
       </div>
       <div>
-        <div id="mode-indicator" class="hud-text" style="text-align: center; font-size: 18px; margin-bottom: 10px; opacity: 0;">OVERDRAW ENGAGED</div>
+        <div id="mode-indicator" class="hud-text" style="text-align: center; font-size: 18px; margin-bottom: 10px; opacity: 0; color: #ff4444;">OVERDRAW ENGAGED</div>
         <div id="force-meter-container">
           <div id="force-meter-fill"></div>
         </div>
-        <div class="instructions hud-text">Drag from center to aim and apply force. Release to fire.</div>
       </div>
     </div>
+    <div id="weapon-info" class="hud-text">Weapon: Precision Sling</div>
+    <button id="restart-btn">Restart Level</button>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

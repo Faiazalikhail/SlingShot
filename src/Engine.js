@@ -1,5 +1,11 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { VignetteShader } from 'three/examples/jsm/shaders/VignetteShader.js';
 
 export class Engine {
   constructor() {
@@ -7,18 +13,20 @@ export class Engine {
 
     // --- Three.js Setup ---
     this.scene = new THREE.Scene();
-    // Desaturated, dusty atmosphere (fog)
-    this.scene.background = new THREE.Color(0xa0a0a0);
-    this.scene.fog = new THREE.Fog(0xa0a0a0, 10, 50);
 
-    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-    // Position camera behind the slingshot
-    this.camera.position.set(0, 2, 8);
-    this.camera.lookAt(0, 2, 0);
+    // Desert Dust palette & atmosphere
+    const dustColor = new THREE.Color(0xbaa68b);
+    this.scene.background = dustColor;
+    // Denser fog for the "Balkh" feel
+    this.scene.fog = new THREE.FogExp2(dustColor, 0.04);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+    // Position camera will be handled by PlayerController
+    this.camera.position.set(0, 2, 0);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: false }); // Disabled antialias for better post-processing perf
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.container.appendChild(this.renderer.domElement);
@@ -61,6 +69,9 @@ export class Engine {
     // Arrays to keep track of bodies to update meshes
     this.physicsObjects = [];
 
+    // --- Post-Processing ---
+    this.setupPostProcessing();
+
     // --- Ground ---
     this.createGround();
 
@@ -69,6 +80,29 @@ export class Engine {
 
     // Clock for time stepping
     this.clock = new THREE.Clock();
+  }
+
+  setupPostProcessing() {
+    this.composer = new EffectComposer(this.renderer);
+
+    // Render Pass
+    const renderPass = new RenderPass(this.scene, this.camera);
+    this.composer.addPass(renderPass);
+
+    // Film Pass (Grain & scanlines)
+    // parameters: noiseIntensity, scanlinesIntensity, scanlinesCount, grayscale
+    const filmPass = new FilmPass(0.35, 0.0, 0, false);
+    this.composer.addPass(filmPass);
+
+    // Vignette Pass
+    const vignettePass = new ShaderPass(VignetteShader);
+    vignettePass.uniforms['offset'].value = 1.0;
+    vignettePass.uniforms['darkness'].value = 1.5;
+    this.composer.addPass(vignettePass);
+
+    // Output Pass
+    const outputPass = new OutputPass();
+    this.composer.addPass(outputPass);
   }
 
   createGround() {
@@ -107,6 +141,7 @@ export class Engine {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
   }
 
   update() {
@@ -117,11 +152,15 @@ export class Engine {
 
     // Sync meshes with bodies
     for (const obj of this.physicsObjects) {
-      obj.mesh.position.copy(obj.body.position);
-      obj.mesh.quaternion.copy(obj.body.quaternion);
+      if (obj.mesh && obj.body) {
+        obj.mesh.position.copy(obj.body.position);
+        obj.mesh.quaternion.copy(obj.body.quaternion);
+      }
     }
 
-    // Render
-    this.renderer.render(this.scene, this.camera);
+    // Render via Composer
+    this.composer.render();
+
+    return dt;
   }
 }

@@ -7,29 +7,27 @@ export class Environment {
 
     // Materials
     this.mudBrickMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8a7b66, // Desaturated mud color
+      color: 0x8a7b66,
       roughness: 0.95,
       metalness: 0.05
     });
 
     this.potteryMaterial = new THREE.MeshStandardMaterial({
-      color: 0xa87c65, // Terracotta-ish but dusty
+      color: 0xa87c65,
       roughness: 0.8,
       metalness: 0.1
     });
 
     this.woodMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5a4b3c, // Dark dusty wood
+      color: 0x5a4b3c,
       roughness: 0.9,
       metalness: 0.0
     });
 
-    this.buildExerciseA();
-    this.buildExerciseB();
-    this.buildExerciseC();
+    this.buildBalaHissar();
+    this.buildTargetCourse();
   }
 
-  // Helper to create a static box
   createStaticBox(width, height, depth, x, y, z, material) {
     const geo = new THREE.BoxGeometry(width, height, depth);
     const mesh = new THREE.Mesh(geo, material);
@@ -38,7 +36,7 @@ export class Environment {
 
     const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
     const body = new CANNON.Body({
-      mass: 0, // static
+      mass: 0,
       shape: shape,
       position: new CANNON.Vec3(x, y, z),
       material: this.engine.defaultMaterial
@@ -48,124 +46,54 @@ export class Environment {
     return { mesh, body };
   }
 
-  // Helper to create a dynamic object
-  createDynamicObject(mesh, shape, mass, x, y, z) {
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+  createDynamicBox(width, height, depth, x, y, z, material, mass) {
+      const geo = new THREE.BoxGeometry(width, height, depth);
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
 
-    const body = new CANNON.Body({
-      mass: mass,
-      shape: shape,
-      position: new CANNON.Vec3(x, y, z),
-      material: this.engine.defaultMaterial
-    });
+      const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
+      const body = new CANNON.Body({
+        mass: mass,
+        shape: shape,
+        position: new CANNON.Vec3(x, y, z),
+        material: this.engine.defaultMaterial
+      });
 
-    this.engine.addPhysicsObject(mesh, body);
-    return { mesh, body };
+      this.engine.addPhysicsObject(mesh, body);
+      return { mesh, body };
   }
 
-  buildExerciseA() {
-    // Exercise A: Precision Hit (Center Left)
-    // A mud-brick wall with a clay pot on top
-    const wallX = -6;
-    const wallZ = -10;
+  buildBalaHissar() {
+      // Large walls to walk around
+      this.createStaticBox(40, 8, 2, 0, 4, -30, this.mudBrickMaterial); // Back wall
+      this.createStaticBox(2, 8, 40, -20, 4, -10, this.mudBrickMaterial); // Left wall
+      this.createStaticBox(2, 8, 40, 20, 4, -10, this.mudBrickMaterial); // Right wall
 
-    // Wall
-    this.createStaticBox(3, 2, 0.5, wallX, 1, wallZ, this.mudBrickMaterial);
-
-    // Clay Pot Target
-    const potGeo = new THREE.CylinderGeometry(0.3, 0.2, 0.6, 8);
-    const potShape = new CANNON.Cylinder(0.3, 0.2, 0.6, 8);
-    // Adjust shape orientation for Cannon cylinder
-    const q = new CANNON.Quaternion();
-    q.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
-    // Since cannon-es shapes are oriented differently, we need to handle rotation
-    // Actually, cannon-es cylinder is oriented along Z. Let's use a box for simplicity and reliability,
-    // or properly rotate the shape.
-
-    // Let's use a simpler Box shape for the pot to avoid orientation mismatch bugs easily
-    const simplePotShape = new CANNON.Box(new CANNON.Vec3(0.3, 0.3, 0.3));
-
-    this.createDynamicObject(
-      new THREE.Mesh(potGeo, this.potteryMaterial),
-      simplePotShape,
-      1, // mass
-      wallX, 2 + 0.3, wallZ
-    );
+      // Some platforms and ruins
+      this.createStaticBox(6, 4, 6, -10, 2, -20, this.mudBrickMaterial);
+      this.createStaticBox(8, 2, 8, 12, 1, -15, this.mudBrickMaterial);
   }
 
-  buildExerciseB() {
-    // Exercise B: Arced Trajectory (Center Right, further back)
-    // A collapsed archway with a target hidden behind it
-    const archX = 6;
-    const archZ = -18;
+  buildTargetCourse() {
+      // 3 Ground Targets (Small clay pots on the floor/low walls)
+      this.createDynamicBox(0.6, 0.6, 0.6, -5, 0.3, -10, this.potteryMaterial, 1);
+      this.createDynamicBox(0.6, 0.6, 0.6, 0, 0.3, -15, this.potteryMaterial, 1);
+      this.createDynamicBox(0.6, 0.6, 0.6, 5, 0.3, -12, this.potteryMaterial, 1);
 
-    // Left Pillar
-    this.createStaticBox(1, 4, 1, archX - 2, 2, archZ, this.mudBrickMaterial);
-    // Right Pillar
-    this.createStaticBox(1, 4, 1, archX + 2, 2, archZ, this.mudBrickMaterial);
-    // Top Arch (Lintel)
-    this.createStaticBox(5, 1, 1, archX, 4.5, archZ, this.mudBrickMaterial);
+      // 2 Hanging/Floating Targets (Resting high up on walls)
+      // Placed on the ruins platforms
+      this.createDynamicBox(0.8, 0.8, 0.8, -10, 4.4, -20, this.potteryMaterial, 1);
+      this.createDynamicBox(0.8, 0.8, 0.8, 12, 2.4, -15, this.potteryMaterial, 1);
 
-    // Obstacle Wall in front of target
-    this.createStaticBox(4, 2, 0.5, archX, 1, archZ - 1, this.mudBrickMaterial);
-
-    // Target hidden behind
-    const targetGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-    const targetShape = new CANNON.Box(new CANNON.Vec3(0.4, 0.4, 0.4));
-
-    this.createDynamicObject(
-      new THREE.Mesh(targetGeo, this.potteryMaterial),
-      targetShape,
-      1,
-      archX, 0.4, archZ - 3
-    );
-  }
-
-  buildExerciseC() {
-    // Exercise C: Structural Impact (Center, very far)
-    // Timber support holding up rubble
-    const structX = 0;
-    const structZ = -25;
-
-    // Timber support (Tall, thin box) - Dynamic but resting
-    const supportGeo = new THREE.BoxGeometry(0.4, 4, 0.4);
-    const supportShape = new CANNON.Box(new CANNON.Vec3(0.2, 2, 0.2));
-
-    this.createDynamicObject(
-      new THREE.Mesh(supportGeo, this.woodMaterial),
-      supportShape,
-      5, // mass
-      structX, 2, structZ
-    );
-
-    // Rubble on top (Stack of boxes)
-    const rubbleSize = 0.6;
-    const rubbleGeo = new THREE.BoxGeometry(rubbleSize, rubbleSize, rubbleSize);
-    const rubbleShape = new CANNON.Box(new CANNON.Vec3(rubbleSize/2, rubbleSize/2, rubbleSize/2));
-
-    const numBoxes = 3;
-    for(let i=0; i<numBoxes; i++) {
-        for(let j=0; j<numBoxes; j++) {
-            this.createDynamicObject(
-                new THREE.Mesh(rubbleGeo, this.mudBrickMaterial),
-                rubbleShape,
-                2,
-                structX - (rubbleSize) + (i*rubbleSize),
-                4 + (rubbleSize/2) + (j*rubbleSize),
-                structZ
-            );
-        }
-    }
-
-    // Add a plank under the rubble resting on the support
-    const plankGeo = new THREE.BoxGeometry(3, 0.2, 1);
-    const plankShape = new CANNON.Box(new CANNON.Vec3(1.5, 0.1, 0.5));
-    this.createDynamicObject(
-        new THREE.Mesh(plankGeo, this.woodMaterial),
-        plankShape,
-        2,
-        structX, 4.1, structZ
-    );
+      // 1 Extreme-Range Target (Far back on the main wall)
+      // Small structural pile
+      const exX = 0;
+      const exZ = -29;
+      const exY = 8.5; // Top of the 8-unit high wall
+      this.createDynamicBox(1, 1, 1, exX, exY, exZ, this.woodMaterial, 2);
+      this.createDynamicBox(1, 1, 1, exX - 1.2, exY, exZ, this.woodMaterial, 2);
+      this.createDynamicBox(1, 1, 1, exX + 1.2, exY, exZ, this.woodMaterial, 2);
+      this.createDynamicBox(1.2, 1.2, 1.2, exX, exY + 1.1, exZ, this.potteryMaterial, 1); // The prize
   }
 }
