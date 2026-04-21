@@ -32,7 +32,7 @@ export class PlayerController {
     const help = document.createElement('div');
     help.style.marginTop = '20px';
     help.style.fontSize = '16px';
-    help.innerText = 'WASD: Move | Mouse: Look | 1: Precision Sling | 2: Staff Sling | LMB: Charge/Fire';
+    help.innerText = 'WASD: Move | Space: Jump | 1/2: Weapon | 3-6: Ammo Type | Hold LMB: Charge | Release: Fire';
     this.blocker.appendChild(help);
 
     document.body.appendChild(this.blocker);
@@ -121,7 +121,7 @@ export class PlayerController {
           break;
         case 'Space':
           if (this.canJump === true) {
-             this.body.velocity.y = 8;
+             this.body.velocity.y = 14;
              this.canJump = false;
           }
           break;
@@ -194,6 +194,11 @@ export class PlayerController {
       // Set XZ velocity directly — Y is left alone so gravity and jumping still work
       this.body.velocity.x = (camForward.x * this.direction.z + camRight.x * this.direction.x) * speed;
       this.body.velocity.z = (camForward.z * this.direction.z + camRight.z * this.direction.x) * speed;
+    }
+
+    // Extra downward pull when falling so landings feel snappy, not floaty
+    if (this.body.velocity.y < 0) {
+      this.body.applyForce(new CANNON.Vec3(0, -800, 0), this.body.position);
     }
 
     // Sync camera to physics body

@@ -14,11 +14,10 @@ export class Engine {
     // --- Three.js Setup ---
     this.scene = new THREE.Scene();
 
-    // Desert Dust palette & atmosphere
-    const dustColor = new THREE.Color(0xbaa68b);
-    this.scene.background = dustColor;
-    // Light haze — targets remain clearly visible at game distances
-    this.scene.fog = new THREE.FogExp2(dustColor, 0.018);
+    // Warm golden-hour sky
+    const skyColor = new THREE.Color(0xc9956a);
+    this.scene.background = skyColor;
+    this.scene.fog = new THREE.FogExp2(new THREE.Color(0xd4a87a), 0.012);
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
     // Position camera will be handled by PlayerController
@@ -32,25 +31,28 @@ export class Engine {
     this.container.appendChild(this.renderer.domElement);
 
     // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const hemi = new THREE.HemisphereLight(0xffe0b0, 0x8b7355, 0.6);
+    this.scene.add(hemi);
+
+    const ambientLight = new THREE.AmbientLight(0xfff0e0, 0.35);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffeedd, 0.8);
-    dirLight.position.set(5, 10, 5);
+    const dirLight = new THREE.DirectionalLight(0xffd080, 1.1);
+    dirLight.position.set(20, 30, 10);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
     dirLight.shadow.camera.near = 0.5;
-    dirLight.shadow.camera.far = 50;
-    dirLight.shadow.camera.left = -15;
-    dirLight.shadow.camera.right = 15;
-    dirLight.shadow.camera.top = 15;
-    dirLight.shadow.camera.bottom = -15;
+    dirLight.shadow.camera.far = 150;
+    dirLight.shadow.camera.left = -60;
+    dirLight.shadow.camera.right = 60;
+    dirLight.shadow.camera.top = 60;
+    dirLight.shadow.camera.bottom = -60;
     this.scene.add(dirLight);
 
     // --- Cannon-es Setup ---
     this.world = new CANNON.World();
-    this.world.gravity.set(0, -9.81, 0);
+    this.world.gravity.set(0, -22, 0);
     this.world.broadphase = new CANNON.SAPBroadphase(this.world);
     this.world.solver.iterations = 10;
 
@@ -107,7 +109,7 @@ export class Engine {
 
   createGround() {
     // Three.js Ground
-    const groundGeo = new THREE.PlaneGeometry(100, 100);
+    const groundGeo = new THREE.PlaneGeometry(300, 300);
     // Sandy-grey material
     const groundMat = new THREE.MeshStandardMaterial({
       color: 0x9e9581,
