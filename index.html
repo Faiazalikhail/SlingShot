@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Balkh Slingshot Demo</title>
+    <title>Project Balkh — Training Range</title>
     <style>
       body {
         margin: 0;
@@ -78,6 +78,60 @@
       #restart-btn:hover {
         background: rgba(255,255,255,0.2);
       }
+
+      /* ── Ammo selector ────────────────────────── */
+      #ammo-bar {
+        position: absolute;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        pointer-events: none;
+      }
+      .ammo-slot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        background: rgba(0,0,0,0.55);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 6px;
+        color: rgba(255,255,255,0.5);
+        font-size: 12px;
+        min-width: 72px;
+        transition: border-color 0.15s, color 0.15s;
+      }
+      .ammo-slot.ammo-active {
+        border-color: rgba(255,255,255,0.9);
+        color: #fff;
+        box-shadow: 0 0 8px rgba(255,255,255,0.3);
+      }
+      .ammo-dot {
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        margin-bottom: 2px;
+      }
+      .ammo-key {
+        font-size: 10px;
+        opacity: 0.6;
+      }
+      .ammo-name {
+        font-weight: bold;
+        font-size: 13px;
+      }
+      #ammo-desc {
+        position: absolute;
+        bottom: 56px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px;
+        color: rgba(255,255,255,0.6);
+        white-space: nowrap;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
@@ -94,6 +148,31 @@
         </div>
       </div>
     </div>
+    <!-- Ammo selector -->
+    <div id="ammo-bar">
+      <div class="ammo-slot ammo-active" id="ammo-slot-0">
+        <div class="ammo-dot" style="background:#888"></div>
+        <div class="ammo-name">Stone</div>
+        <div class="ammo-key">[3]</div>
+      </div>
+      <div class="ammo-slot" id="ammo-slot-1">
+        <div class="ammo-dot" style="background:#333"></div>
+        <div class="ammo-name">Boulder</div>
+        <div class="ammo-key">[4]</div>
+      </div>
+      <div class="ammo-slot" id="ammo-slot-2">
+        <div class="ammo-dot" style="background:#ff4400"></div>
+        <div class="ammo-name">Explosive</div>
+        <div class="ammo-key">[5]</div>
+      </div>
+      <div class="ammo-slot" id="ammo-slot-3">
+        <div class="ammo-dot" style="background:#44aaff"></div>
+        <div class="ammo-name">Burst</div>
+        <div class="ammo-key">[6]</div>
+      </div>
+    </div>
+    <div id="ammo-desc" class="hud-text">Balanced shot — reliable arc</div>
+
     <div id="weapon-info" class="hud-text">Weapon: Precision Sling</div>
     <button id="restart-btn">Restart Level</button>
     <script type="module" src="/src/main.js"></script>
