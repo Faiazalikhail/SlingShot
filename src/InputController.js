@@ -10,10 +10,10 @@ export class InputController {
 
     this.isCharging = false;
     this.chargeAmount = 0; // 0 to 1
-    this.chargeRate = 0.5; // per second
+    this.chargeRate = 0.7; // per second — full charge in ~1.4s
 
     // Physics constants
-    this.maxForce = 120; // Max force applied to projectile
+    this.maxForce = 80; // Max impulse applied to projectile
 
     // DOM Elements for HUD
     this.forceMeterFill = document.getElementById('force-meter-fill');
@@ -64,9 +64,8 @@ export class InputController {
             this.engine.camera.fov = THREE.MathUtils.lerp(this.engine.camera.fov, targetFOV, 0.1);
             this.engine.camera.updateProjectionMatrix();
 
-            // Screen shake at high charge
+            // Overdrive indicator — no screen shake during charge so you can still aim
             if(this.chargeAmount > 0.8) {
-                this.triggerRecoil(0.02);
                 this.modeIndicator.style.opacity = 1;
                 this.slingshot.slingLine.material.color.setHex(0xff0000);
             } else {
@@ -74,19 +73,22 @@ export class InputController {
                 this.slingshot.slingLine.material.color.setHex(0x884444);
             }
 
-            // Calculate Force
+            // Calculate force — normalize direction first, then add a small consistent upward arc
             const forceMag = this.maxForce * this.chargeAmount;
             const forceDir = new THREE.Vector3();
             this.engine.camera.getWorldDirection(forceDir);
-            forceDir.y += 0.1; // Baseline arc
             forceDir.normalize();
+            forceDir.y += 0.08; // Small upward bias added after normalizing — consistent at all aim angles
 
             const finalForce = forceDir.clone().multiplyScalar(forceMag);
 
-            // Show trajectory
-            const startPos = this.slingshot.currentProjectile.body.position;
-            const mode = this.chargeAmount > 0.8 ? 'LONG' : 'NORMAL';
-            this.trajectory.update(startPos, finalForce, mode);
+            // Trajectory always visible while charging (camera eye position as start)
+            const startPos = new THREE.Vector3();
+            this.engine.camera.getWorldPosition(startPos);
+            const lookDir = new THREE.Vector3();
+            this.engine.camera.getWorldDirection(lookDir);
+            startPos.addScaledVector(lookDir, 0.8); // Slightly in front of camera
+            this.trajectory.update(startPos, finalForce, 'NORMAL');
 
         } else if (this.slingshot.activeWeapon === 2) {
             // Staff Sling Whirling
@@ -126,14 +128,12 @@ export class InputController {
           return;
       }
 
-      // Calculate force based on camera look direction
+      // Identical force calculation as the preview — normalize first, add bias after
       const forceMag = this.maxForce * this.chargeAmount;
       const forceDir = new THREE.Vector3();
       this.engine.camera.getWorldDirection(forceDir);
-
-      // Add slight upward angle
-      forceDir.y += 0.1;
       forceDir.normalize();
+      forceDir.y += 0.08;
 
       const finalForce = forceDir.multiplyScalar(forceMag);
 

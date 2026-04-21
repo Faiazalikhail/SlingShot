@@ -17,8 +17,8 @@ export class Engine {
     // Desert Dust palette & atmosphere
     const dustColor = new THREE.Color(0xbaa68b);
     this.scene.background = dustColor;
-    // Denser fog for the "Balkh" feel
-    this.scene.fog = new THREE.FogExp2(dustColor, 0.04);
+    // Light haze — targets remain clearly visible at game distances
+    this.scene.fog = new THREE.FogExp2(dustColor, 0.018);
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
     // Position camera will be handled by PlayerController

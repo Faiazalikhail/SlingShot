@@ -12,16 +12,39 @@ export class Environment {
       metalness: 0.05
     });
 
+    // Bright red-orange pots — easy to spot against sandy/grey environment
     this.potteryMaterial = new THREE.MeshStandardMaterial({
-      color: 0xa87c65,
-      roughness: 0.8,
-      metalness: 0.1
+      color: 0xff3300,
+      roughness: 0.6,
+      metalness: 0.1,
+      emissive: new THREE.Color(0x661100),
+      emissiveIntensity: 0.6
+    });
+
+    // Bright blue elevated targets
+    this.elevatedTargetMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0077ff,
+      roughness: 0.5,
+      metalness: 0.2,
+      emissive: new THREE.Color(0x002266),
+      emissiveIntensity: 0.6
+    });
+
+    // Bright gold prize target
+    this.prizeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffcc00,
+      roughness: 0.3,
+      metalness: 0.7,
+      emissive: new THREE.Color(0x664400),
+      emissiveIntensity: 0.8
     });
 
     this.woodMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5a4b3c,
-      roughness: 0.9,
-      metalness: 0.0
+      color: 0x8b6914,
+      roughness: 0.8,
+      metalness: 0.0,
+      emissive: new THREE.Color(0x332200),
+      emissiveIntensity: 0.3
     });
 
     this.buildBalaHissar();
@@ -76,24 +99,22 @@ export class Environment {
   }
 
   buildTargetCourse() {
-      // 3 Ground Targets (Small clay pots on the floor/low walls)
-      this.createDynamicBox(0.6, 0.6, 0.6, -5, 0.3, -10, this.potteryMaterial, 1);
-      this.createDynamicBox(0.6, 0.6, 0.6, 0, 0.3, -15, this.potteryMaterial, 1);
-      this.createDynamicBox(0.6, 0.6, 0.6, 5, 0.3, -12, this.potteryMaterial, 1);
+      // 3 Ground Targets — bright red, 1m cubes so they're easy to see and hit
+      this.createDynamicBox(1.0, 1.0, 1.0, -5, 0.5, -10, this.potteryMaterial, 1);
+      this.createDynamicBox(1.0, 1.0, 1.0, 0,  0.5, -15, this.potteryMaterial, 1);
+      this.createDynamicBox(1.0, 1.0, 1.0, 5,  0.5, -12, this.potteryMaterial, 1);
 
-      // 2 Hanging/Floating Targets (Resting high up on walls)
-      // Placed on the ruins platforms
-      this.createDynamicBox(0.8, 0.8, 0.8, -10, 4.4, -20, this.potteryMaterial, 1);
-      this.createDynamicBox(0.8, 0.8, 0.8, 12, 2.4, -15, this.potteryMaterial, 1);
+      // 2 Elevated Targets — bright blue on the platforms
+      this.createDynamicBox(1.2, 1.2, 1.2, -10, 4.6, -20, this.elevatedTargetMaterial, 1);
+      this.createDynamicBox(1.2, 1.2, 1.2,  12, 2.6, -15, this.elevatedTargetMaterial, 1);
 
-      // 1 Extreme-Range Target (Far back on the main wall)
-      // Small structural pile
+      // Long-range stack — larger wooden blocks with a glowing gold prize on top
       const exX = 0;
       const exZ = -29;
-      const exY = 8.5; // Top of the 8-unit high wall
-      this.createDynamicBox(1, 1, 1, exX, exY, exZ, this.woodMaterial, 2);
-      this.createDynamicBox(1, 1, 1, exX - 1.2, exY, exZ, this.woodMaterial, 2);
-      this.createDynamicBox(1, 1, 1, exX + 1.2, exY, exZ, this.woodMaterial, 2);
-      this.createDynamicBox(1.2, 1.2, 1.2, exX, exY + 1.1, exZ, this.potteryMaterial, 1); // The prize
+      const exY = 8.5;
+      this.createDynamicBox(1.5, 1.5, 1.5, exX,        exY,       exZ, this.woodMaterial, 2);
+      this.createDynamicBox(1.5, 1.5, 1.5, exX - 1.8,  exY,       exZ, this.woodMaterial, 2);
+      this.createDynamicBox(1.5, 1.5, 1.5, exX + 1.8,  exY,       exZ, this.woodMaterial, 2);
+      this.createDynamicBox(1.5, 1.5, 1.5, exX,        exY + 1.6, exZ, this.prizeMaterial, 1); // The prize
   }
 }
