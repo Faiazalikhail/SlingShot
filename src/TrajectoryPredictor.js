@@ -4,16 +4,16 @@ import * as CANNON from 'cannon-es';
 export class TrajectoryPredictor {
   constructor(engine) {
     this.engine = engine;
-    this.numPoints = 30; // Number of points in the trajectory line
-    this.timeStep = 1 / 60; // Step size for prediction calculation
+    this.numPoints = 80; // More points = longer, clearer arc
+    this.timeStep = 0.05; // 4 seconds of simulated flight at 80 steps
 
-    // Create dotted line material
+    // Bright cyan dashes — stand out against the sandy environment
     const lineMat = new THREE.LineDashedMaterial({
-      color: 0xffffff,
+      color: 0x00ffff,
       linewidth: 2,
-      dashSize: 0.2,
-      gapSize: 0.2,
-      opacity: 0.5,
+      dashSize: 0.5,
+      gapSize: 0.25,
+      opacity: 0.85,
       transparent: true
     });
 
@@ -30,12 +30,6 @@ export class TrajectoryPredictor {
   }
 
   update(startPosition, initialVelocity, currentMode) {
-    // Fade out / Hide for Long Range mode to increase difficulty
-    if (currentMode === 'LONG') {
-        this.line.visible = false;
-        return;
-    }
-
     if (initialVelocity.length() < 0.1) {
         this.line.visible = false;
         return;
@@ -70,8 +64,8 @@ export class TrajectoryPredictor {
         positions[i * 3 + 1] = pos.y;
         positions[i * 3 + 2] = pos.z;
 
-        // Stop drawing if it hits the ground plane approx
-        if (pos.y < 0) {
+        // Stop drawing if it hits the ground plane
+        if (pos.y < 0.1) {
             // Fill remainder with last position to prevent tail artifacts
             for (let j = i + 1; j < this.numPoints; j++) {
                 positions[j * 3] = pos.x;

@@ -182,6 +182,8 @@ export class Slingshot {
     }
 
     this.currentProjectile.mesh.position.copy(worldPouchPos);
+    // Keep the kinematic body in sync so trajectory preview starts from the correct world position
+    this.currentProjectile.body.position.set(worldPouchPos.x, worldPouchPos.y, worldPouchPos.z);
   }
 
   loadProjectile() {

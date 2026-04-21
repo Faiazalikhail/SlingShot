@@ -84,7 +84,7 @@ export class PlayerController {
       fixedRotation: true // Prevent falling over
     });
 
-    this.body.linearDamping = 0.9; // Friction for moving
+    this.body.linearDamping = 0.05;
     this.engine.world.addBody(this.body);
 
     // Movement state
@@ -173,39 +173,31 @@ export class PlayerController {
 
   update(dt) {
     if (this.controls.isLocked) {
-      // Input movement
-      const speed = 250;
+      const speed = 8; // m/s — direct velocity control for responsive movement
 
       this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
       this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-      this.direction.normalize(); // consistent speed in all directions
 
-      // Apply forces relative to camera rotation
-      if (this.moveForward || this.moveBackward) {
-         // Get forward vector from camera
-         const camForward = new THREE.Vector3();
-         this.engine.camera.getWorldDirection(camForward);
-         camForward.y = 0;
-         camForward.normalize();
-         camForward.multiplyScalar(this.direction.z * speed * dt);
-
-         this.body.applyForce(new CANNON.Vec3(camForward.x, 0, camForward.z), this.body.position);
+      if (this.direction.x !== 0 || this.direction.z !== 0) {
+        this.direction.normalize();
       }
 
-      if (this.moveLeft || this.moveRight) {
-         const camRight = new THREE.Vector3(1, 0, 0);
-         camRight.applyQuaternion(this.engine.camera.quaternion);
-         camRight.y = 0;
-         camRight.normalize();
-         camRight.multiplyScalar(this.direction.x * speed * dt);
+      const camForward = new THREE.Vector3();
+      this.engine.camera.getWorldDirection(camForward);
+      camForward.y = 0;
+      camForward.normalize();
 
-         this.body.applyForce(new CANNON.Vec3(camRight.x, 0, camRight.z), this.body.position);
-      }
+      const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.engine.camera.quaternion);
+      camRight.y = 0;
+      camRight.normalize();
+
+      // Set XZ velocity directly — Y is left alone so gravity and jumping still work
+      this.body.velocity.x = (camForward.x * this.direction.z + camRight.x * this.direction.x) * speed;
+      this.body.velocity.z = (camForward.z * this.direction.z + camRight.z * this.direction.x) * speed;
     }
 
     // Sync camera to physics body
     this.engine.camera.position.copy(this.body.position);
-    // Put camera at eye level
     this.engine.camera.position.y += this.playerHeight / 2;
   }
 }
