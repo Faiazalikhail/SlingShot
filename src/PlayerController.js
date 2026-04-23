@@ -37,19 +37,7 @@ export class PlayerController {
 
     document.body.appendChild(this.blocker);
 
-    // Crosshair
-    const crosshair = document.createElement('div');
-    crosshair.style.position = 'absolute';
-    crosshair.style.top = '50%';
-    crosshair.style.left = '50%';
-    crosshair.style.width = '6px';
-    crosshair.style.height = '6px';
-    crosshair.style.backgroundColor = 'white';
-    crosshair.style.borderRadius = '50%';
-    crosshair.style.transform = 'translate(-50%, -50%)';
-    crosshair.style.pointerEvents = 'none';
-    crosshair.style.zIndex = '5';
-    document.body.appendChild(crosshair);
+    // Crosshair is in index.html
 
     this.blocker.addEventListener('click', () => {
       this.controls.lock();
@@ -79,9 +67,9 @@ export class PlayerController {
     this.body = new CANNON.Body({
       mass: this.mass,
       shape: physicsShape,
-      position: new CANNON.Vec3(0, 5, 10), // Start a bit high
-      material: this.engine.defaultMaterial,
-      fixedRotation: true // Prevent falling over
+      position: new CANNON.Vec3(0, 5, 10),
+      material: this.engine.playerMaterial,
+      fixedRotation: true
     });
 
     this.body.linearDamping = 0.05;

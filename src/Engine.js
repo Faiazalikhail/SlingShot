@@ -56,17 +56,21 @@ export class Engine {
     this.world.broadphase = new CANNON.SAPBroadphase(this.world);
     this.world.solver.iterations = 10;
 
-    // Default Physics Material
     this.defaultMaterial = new CANNON.Material('default');
     const defaultContactMaterial = new CANNON.ContactMaterial(
-      this.defaultMaterial,
-      this.defaultMaterial,
-      {
-        friction: 0.5,
-        restitution: 0.3,
-      }
+      this.defaultMaterial, this.defaultMaterial,
+      { friction: 0.4, restitution: 0.3 }
     );
     this.world.addContactMaterial(defaultContactMaterial);
+
+    // Player gets its own zero-friction material so the sphere never "sticks"
+    // to the ground and WASD always feels responsive
+    this.playerMaterial = new CANNON.Material('player');
+    const playerGroundContact = new CANNON.ContactMaterial(
+      this.playerMaterial, this.defaultMaterial,
+      { friction: 0.0, restitution: 0.0 }
+    );
+    this.world.addContactMaterial(playerGroundContact);
 
     // Arrays to keep track of bodies to update meshes
     this.physicsObjects = [];

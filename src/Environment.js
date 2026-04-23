@@ -4,6 +4,8 @@ import * as CANNON from 'cannon-es';
 export class Environment {
   constructor(engine) {
     this.engine = engine;
+    this._time  = 0;
+    this.movingTargets = []; // updated every frame
 
     this.mudBrickMat = new THREE.MeshStandardMaterial({ color: 0x8a7b66, roughness: 0.95, metalness: 0.05 });
     this.stoneMat    = new THREE.MeshStandardMaterial({ color: 0x6a6055, roughness: 0.9,  metalness: 0.05 });
@@ -27,6 +29,7 @@ export class Environment {
     this.buildZone5_55m();
     this.buildZone6_68m();
     this.buildZone7_80m();
+    this.buildMovingTargets();
     this.buildDistanceMarkers();
   }
 
@@ -252,6 +255,69 @@ export class Environment {
     this._dynSphere(0.45,  8, 0.45, -77, this.tCyan,   1);
     this._dynBox(0.6, 0.6, 0.6, -14, 0.3, -75, this.tPurple, 1);
     this._dynBox(0.6, 0.6, 0.6,  14, 0.3, -75, this.tPurple, 1);
+  }
+
+  // ── Moving targets ───────────────────────────────────────────────────────
+
+  buildMovingTargets() {
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x5a3e1c, roughness: 0.9 });
+
+    // ── Pendulum 1 (20 m zone) — swings ±5 m horizontally ──────────────────
+    {
+      const cx = 0, cy = 1.0, cz = -10;
+      // Rail post
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8), postMat);
+      post.position.set(cx, 1.25, cz);
+      this.engine.scene.add(post);
+
+      const { mesh, body } = this._dynSphere(0.6, cx, cy, cz, this.tGreen, 1);
+      body.type = CANNON.Body.KINEMATIC;
+      this.movingTargets.push({
+        mesh, body,
+        tick: (t) => {
+          const x = cx + 5.0 * Math.sin(t * 1.1);
+          body.position.set(x, cy, cz);
+        }
+      });
+    }
+
+    // ── Pendulum 2 (42 m zone) — faster swing, smaller arc ─────────────────
+    {
+      const cx = 4, cy = 0.7, cz = -32;
+      const { mesh, body } = this._dynSphere(0.55, cx, cy, cz, this.tCyan, 1);
+      body.type = CANNON.Body.KINEMATIC;
+      this.movingTargets.push({
+        mesh, body,
+        tick: (t) => {
+          const x = cx + 4.5 * Math.sin(t * 1.8);
+          body.position.set(x, cy, cz);
+        }
+      });
+    }
+
+    // ── Slider (55 m zone) — box that slides left↔right on wall top ────────
+    {
+      const cy = 7.0, cz = -44.5;  // on top of the 6-m wall
+      const { mesh, body } = this._dynBox(1.2, 1.2, 1.2, 5, cy, cz, this.tPurple, 1.5);
+      body.type = CANNON.Body.KINEMATIC;
+      this.movingTargets.push({
+        mesh, body,
+        tick: (t) => {
+          const x = 5 + 7.0 * Math.sin(t * 0.7);
+          body.position.set(x, cy, cz);
+        }
+      });
+    }
+  }
+
+  // Called from main.js each frame
+  update(dt) {
+    this._time += dt;
+    for (const mt of this.movingTargets) {
+      mt.tick(this._time);
+      // Sync the mesh to the kinematic body position
+      mt.mesh.position.copy(mt.body.position);
+    }
   }
 
   // ── Distance markers ─────────────────────────────────────────────────────
