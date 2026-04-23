@@ -24,7 +24,8 @@ function animate() {
 
   // Use exact delta for controllers
   playerController.update(dt);
-  if(inputController.update) inputController.update(dt);
+  inputController.update(dt);
+  environment.update(dt);
 }
 
 animate();

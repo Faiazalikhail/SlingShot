@@ -2,179 +2,287 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project Balkh — Training Range</title>
     <style>
+      *, *::before, *::after { box-sizing: border-box; }
+
       body {
         margin: 0;
         overflow: hidden;
-        background-color: #000;
+        background: #000;
         font-family: 'Courier New', Courier, monospace;
         user-select: none;
       }
-      #canvas-container {
-        width: 100vw;
-        height: 100vh;
-        display: block;
-      }
-      #hud {
+
+      #canvas-container { width: 100vw; height: 100vh; }
+
+      /* ── Crosshair ── */
+      #crosshair {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        top: 50%; left: 50%;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.85);
+        transform: translate(-50%,-50%);
         pointer-events: none;
+        z-index: 5;
+        transition: transform 0.08s, background 0.08s;
+      }
+
+      /* ── HUD wrapper ── */
+      #hud {
+        position: absolute; inset: 0;
+        pointer-events: none;
+      }
+
+      /* ── Top-left: title + controls ── */
+      #info-panel {
+        position: absolute;
+        top: 16px; left: 16px;
+        background: rgba(0,0,0,0.55);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        padding: 12px 16px;
+        color: rgba(255,255,255,0.85);
+        font-size: 11px;
+        line-height: 1.7;
+        max-width: 230px;
+      }
+      #info-panel h2 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        color: #fff;
+        letter-spacing: 1px;
+      }
+      #info-panel .ctrl { color: rgba(255,255,255,0.55); }
+      #info-panel .key  { color: #ffdd88; }
+
+      /* ── Top-right: restart ── */
+      #restart-btn {
+        position: absolute;
+        top: 16px; right: 16px;
+        pointer-events: auto;
+        background: rgba(0,0,0,0.55);
+        color: rgba(255,255,255,0.8);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 6px;
+        padding: 8px 18px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 13px;
+        z-index: 20;
+        transition: background 0.15s;
+      }
+      #restart-btn:hover { background: rgba(255,255,255,0.15); }
+
+      /* ── Bottom-left: stamina + weapon ── */
+      #bottom-left {
+        position: absolute;
+        bottom: 24px; left: 20px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        padding: 20px;
-        box-sizing: border-box;
+        gap: 6px;
       }
-      .hud-text {
-        color: rgba(255, 255, 255, 0.7);
-        text-shadow: 1px 1px 2px black;
+      #weapon-info {
+        color: rgba(255,255,255,0.7);
+        font-size: 13px;
+      }
+      #stamina-label {
+        color: rgba(255,255,255,0.55);
+        font-size: 10px;
+        margin-bottom: 1px;
+      }
+      #stamina-bar {
+        width: 140px; height: 8px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      #stamina-fill {
+        height: 100%;
+        width: 100%;
+        background: #44dd66;
+        transition: width 0.1s, background 0.3s;
+        border-radius: 4px;
+      }
+
+      /* ── Bottom-centre: charge meter + overdrive ── */
+      #bottom-centre {
+        position: absolute;
+        bottom: 24px; left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      #mode-indicator {
+        font-size: 13px;
+        color: #ff4400;
+        opacity: 0;
+        letter-spacing: 2px;
+        transition: opacity 0.15s;
+        text-shadow: 0 0 8px #ff4400;
       }
       #force-meter-container {
-        position: absolute;
-        bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 200px;
-        height: 10px;
-        background: rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        width: 200px; height: 10px;
+        background: rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.25);
         border-radius: 5px;
         overflow: hidden;
       }
       #force-meter-fill {
-        width: 0%;
-        height: 100%;
-        background: white;
-        transform-origin: left;
-      }
-      #weapon-info {
-        position: absolute;
-        bottom: 40px;
-        right: 40px;
-        font-size: 18px;
-        background: rgba(0,0,0,0.5);
-        padding: 10px;
-        border: 1px solid rgba(255,255,255,0.3);
-      }
-      #restart-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        pointer-events: auto;
-        background: rgba(0,0,0,0.5);
-        color: white;
-        border: 1px solid white;
-        padding: 10px 20px;
-        cursor: pointer;
-        font-family: inherit;
-        z-index: 20;
-      }
-      #restart-btn:hover {
-        background: rgba(255,255,255,0.2);
+        width: 0%; height: 100%;
+        background: #fff;
+        transition: background 0.1s;
+        border-radius: 5px;
       }
 
-      /* ── Ammo selector ────────────────────────── */
+      /* ── Bottom-right: ammo bar ── */
       #ammo-bar {
         position: absolute;
-        bottom: 70px;
-        left: 50%;
-        transform: translateX(-50%);
+        bottom: 20px; right: 16px;
         display: flex;
-        gap: 8px;
+        flex-direction: column;
         align-items: flex-end;
-        pointer-events: none;
+        gap: 4px;
+      }
+      #ammo-desc {
+        font-size: 10px;
+        color: rgba(255,255,255,0.5);
+        text-align: right;
+      }
+      #ammo-slots {
+        display: flex;
+        gap: 6px;
       }
       .ammo-slot {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
-        padding: 8px 12px;
+        gap: 3px;
+        padding: 7px 10px 5px;
         background: rgba(0,0,0,0.55);
-        border: 1px solid rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.15);
         border-radius: 6px;
-        color: rgba(255,255,255,0.5);
-        font-size: 12px;
-        min-width: 72px;
-        transition: border-color 0.15s, color 0.15s;
+        color: rgba(255,255,255,0.45);
+        font-size: 11px;
+        min-width: 60px;
+        transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
       }
       .ammo-slot.ammo-active {
-        border-color: rgba(255,255,255,0.9);
+        border-color: rgba(255,255,255,0.8);
         color: #fff;
-        box-shadow: 0 0 8px rgba(255,255,255,0.3);
+        box-shadow: 0 0 10px rgba(255,255,255,0.2);
+      }
+      .ammo-slot.ammo-empty {
+        opacity: 0.35;
+        border-style: dashed;
       }
       .ammo-dot {
-        width: 14px; height: 14px;
+        width: 12px; height: 12px;
         border-radius: 50%;
-        margin-bottom: 2px;
       }
-      .ammo-key {
-        font-size: 10px;
-        opacity: 0.6;
-      }
-      .ammo-name {
-        font-weight: bold;
-        font-size: 13px;
-      }
-      #ammo-desc {
+      .ammo-name  { font-size: 11px; font-weight: bold; }
+      .ammo-count { font-size: 13px; opacity: 0.9; }
+      .ammo-key   { font-size: 9px; opacity: 0.5; }
+
+      /* ── Centre: hit feedback ── */
+      #hit-feedback {
         position: absolute;
-        bottom: 56px;
-        left: 50%;
+        top: 38%; left: 50%;
         transform: translateX(-50%);
-        font-size: 11px;
-        color: rgba(255,255,255,0.6);
-        white-space: nowrap;
+        font-size: 26px;
+        font-weight: bold;
+        letter-spacing: 3px;
+        color: #fff;
+        opacity: 0;
         pointer-events: none;
+        text-shadow: 0 0 12px currentColor;
+        transition: opacity 0.25s ease;
+      }
+
+      /* ── Blocker / title screen ── */
+      #blocker {
+        /* built by PlayerController in JS */
       }
     </style>
   </head>
   <body>
     <div id="canvas-container"></div>
+
+    <!-- Persistent crosshair -->
+    <div id="crosshair"></div>
+
+    <!-- HUD -->
     <div id="hud">
-      <div>
-        <h1 class="hud-text" style="margin: 0; font-size: 24px;">Project Balkh</h1>
-        <div class="hud-text" style="font-size: 12px; margin-top: 5px;">Kinetic Force Simulation v2.0</div>
+
+      <!-- Top-left: controls reference -->
+      <div id="info-panel">
+        <h2>PROJECT BALKH</h2>
+        <span class="ctrl"><span class="key">WASD</span> Move &nbsp;
+          <span class="key">Space</span> Jump</span><br>
+        <span class="ctrl"><span class="key">LMB Hold</span> Charge &amp; Fire</span><br>
+        <span class="ctrl"><span class="key">RMB Hold</span> Aim (zoom)</span><br>
+        <span class="ctrl"><span class="key">1/2</span> Switch weapon</span><br>
+        <span class="ctrl"><span class="key">3-6</span> Switch ammo</span><br>
+        <span class="ctrl" style="color:#ffe040">Aim for the top = HEADSHOT</span>
       </div>
-      <div>
-        <div id="mode-indicator" class="hud-text" style="text-align: center; font-size: 18px; margin-bottom: 10px; opacity: 0; color: #ff4444;">OVERDRAW ENGAGED</div>
+
+      <!-- Bottom-left: stamina + weapon -->
+      <div id="bottom-left">
+        <div id="weapon-info" style="color:rgba(255,255,255,0.7);font-size:13px">Weapon: Precision Sling</div>
+        <div id="stamina-label">STAMINA</div>
+        <div id="stamina-bar"><div id="stamina-fill"></div></div>
+      </div>
+
+      <!-- Bottom-centre: charge + overdrive -->
+      <div id="bottom-centre">
+        <div id="mode-indicator">⚠ OVERDRAW</div>
         <div id="force-meter-container">
           <div id="force-meter-fill"></div>
         </div>
       </div>
-    </div>
-    <!-- Ammo selector -->
-    <div id="ammo-bar">
-      <div class="ammo-slot ammo-active" id="ammo-slot-0">
-        <div class="ammo-dot" style="background:#888"></div>
-        <div class="ammo-name">Stone</div>
-        <div class="ammo-key">[3]</div>
-      </div>
-      <div class="ammo-slot" id="ammo-slot-1">
-        <div class="ammo-dot" style="background:#333"></div>
-        <div class="ammo-name">Boulder</div>
-        <div class="ammo-key">[4]</div>
-      </div>
-      <div class="ammo-slot" id="ammo-slot-2">
-        <div class="ammo-dot" style="background:#ff4400"></div>
-        <div class="ammo-name">Explosive</div>
-        <div class="ammo-key">[5]</div>
-      </div>
-      <div class="ammo-slot" id="ammo-slot-3">
-        <div class="ammo-dot" style="background:#44aaff"></div>
-        <div class="ammo-name">Burst</div>
-        <div class="ammo-key">[6]</div>
-      </div>
-    </div>
-    <div id="ammo-desc" class="hud-text">Balanced shot — reliable arc</div>
 
-    <div id="weapon-info" class="hud-text">Weapon: Precision Sling</div>
-    <button id="restart-btn">Restart Level</button>
+      <!-- Bottom-right: ammo selector -->
+      <div id="ammo-bar">
+        <div id="ammo-desc">Unlimited · Reliable arc</div>
+        <div id="ammo-slots">
+          <div class="ammo-slot ammo-active" id="ammo-slot-0">
+            <div class="ammo-dot" style="background:#888"></div>
+            <div class="ammo-name">Stone</div>
+            <div class="ammo-count">∞</div>
+            <div class="ammo-key">[3]</div>
+          </div>
+          <div class="ammo-slot" id="ammo-slot-1">
+            <div class="ammo-dot" style="background:#4af"></div>
+            <div class="ammo-name">Burst</div>
+            <div class="ammo-count">15</div>
+            <div class="ammo-key">[4]</div>
+          </div>
+          <div class="ammo-slot" id="ammo-slot-2">
+            <div class="ammo-dot" style="background:#f40"></div>
+            <div class="ammo-name">Explosive</div>
+            <div class="ammo-count">8</div>
+            <div class="ammo-key">[5]</div>
+          </div>
+          <div class="ammo-slot" id="ammo-slot-3">
+            <div class="ammo-dot" style="background:#4f6"></div>
+            <div class="ammo-name">Acid Pot</div>
+            <div class="ammo-count">6</div>
+            <div class="ammo-key">[6]</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hit feedback -->
+      <div id="hit-feedback"></div>
+
+    </div>
+
+    <button id="restart-btn">Restart</button>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
