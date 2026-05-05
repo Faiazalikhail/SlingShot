@@ -1,3 +1,19 @@
+# Environment / secrets
+.env
+
+# PHP vendor
+php-app/vendor/
+
+# Python
+__pycache__/
+*.py[cod]
+fastapi-worker/__pycache__/
+.venv/
+
+# Docker volumes (local dev artefacts)
+mysql_data/
+redis_data/
+
 # Logs
 logs
 *.log
