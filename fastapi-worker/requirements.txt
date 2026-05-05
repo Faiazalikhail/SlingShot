@@ -1,0 +1,15 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+rq==1.16.2
+redis==5.0.8
+sqlalchemy==2.0.35
+pymysql==1.1.1
+cryptography==43.0.3
+boto3==1.35.32
+opencv-python-headless==4.10.0.84
+numpy==2.1.1
+torch==2.4.1
+torchvision==0.19.1
+supervision==0.23.0
+python-multipart==0.0.12
+pydantic-settings==2.5.2
